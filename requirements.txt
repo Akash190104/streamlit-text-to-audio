@@ -1,4 +1,5 @@
 streamlit
 gtts
 pydub
+pyttsx3
 ffmpeg-python
