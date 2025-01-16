@@ -11,11 +11,11 @@ AudioSegment.ffprobe = which("ffprobe")
 
 def generate_audio_with_pauses(text, word_pause=1.82):
     """
-    Generate an audio file from text with a 1.75-second pause after every two words.
+    Generate an audio file from text with a 1.82-second pause between each word.
     
     Args:
         text (str): The input text.
-        word_pause (float): Pause duration in seconds after every two words.
+        word_pause (float): Pause duration in seconds between words.
     
     Returns:
         str: Path to the generated audio file.
@@ -24,15 +24,14 @@ def generate_audio_with_pauses(text, word_pause=1.82):
     temp_dir = tempfile.mkdtemp()
     audio_segments = []
 
-    # Generate audio for every two words
-    for i in range(0, len(words), 1):
-        phrase = " ".join(words[i:i+2])
-        tts = gTTS(phrase, lang='en')
-        temp_file = os.path.join(temp_dir, f"phrase_{i}.mp3")
+    # Generate audio for each word
+    for word in words:
+        tts = gTTS(word, lang='en')
+        temp_file = os.path.join(temp_dir, f"{word}.mp3")
         tts.save(temp_file)
-        phrase_audio = AudioSegment.from_file(temp_file)
-        audio_segments.append(phrase_audio)
-        audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # 1.5 seconds pause
+        word_audio = AudioSegment.from_file(temp_file)
+        audio_segments.append(word_audio)
+        audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # 1.82 seconds pause
 
     # Concatenate all audio segments
     final_audio = sum(audio_segments)
@@ -42,7 +41,7 @@ def generate_audio_with_pauses(text, word_pause=1.82):
 
 # Streamlit UI
 st.title("Text to Audio with Word Gaps")
-st.write("Enter text and get an audio file where every word is spoken with a 1.82-second gap.")
+st.write("Enter text and get an audio file where each word is spoken with a 1.82-second gap.")
 
 # User input
 user_input = st.text_area("Enter your text here:", "")
