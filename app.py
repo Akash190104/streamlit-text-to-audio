@@ -4,19 +4,19 @@ from pydub import AudioSegment
 from pydub.utils import which
 import os
 import tempfile
-import time
 
 # Set the path to FFmpeg and FFprobe
 AudioSegment.converter = which("ffmpeg")
 AudioSegment.ffprobe = which("ffprobe")
 
-def generate_audio_with_pauses(text, word_pause=1.82):
+def generate_audio_with_pauses(text, word_pause=1.82, chunk_size=5):
     """
-    Generate an audio file from text with a 1.82-second pause between words.
+    Generate an audio file from text with pauses between word chunks.
     
     Args:
         text (str): The input text.
-        word_pause (float): Pause duration in seconds between words.
+        word_pause (float): Pause duration in seconds between word chunks.
+        chunk_size (int): Number of words per chunk.
     
     Returns:
         str: Path to the generated audio file.
@@ -25,20 +25,22 @@ def generate_audio_with_pauses(text, word_pause=1.82):
     temp_dir = tempfile.mkdtemp()
     audio_segments = []
 
-    for word in words:
+    # Create chunks of words
+    for i in range(0, len(words), chunk_size):
+        chunk = " ".join(words[i:i + chunk_size])
         try:
-            # Generate audio for each word
-            tts = gTTS(word, lang='en')
-            temp_file = os.path.join(temp_dir, f"{word}.mp3")
+            # Generate audio for the chunk
+            tts = gTTS(chunk, lang='en')
+            temp_file = os.path.join(temp_dir, f"chunk_{i}.mp3")
             tts.save(temp_file)
-            word_audio = AudioSegment.from_file(temp_file)
-            audio_segments.append(word_audio)
-            audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # 1.82 seconds pause
+            chunk_audio = AudioSegment.from_file(temp_file)
+            audio_segments.append(chunk_audio)
+            audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # Pause after the chunk
         except Exception as e:
-            st.warning(f"Skipping word '{word}' due to an error: {e}")
+            st.warning(f"Skipping chunk '{chunk}' due to an error: {e}")
 
     if not audio_segments:
-        raise ValueError("No valid audio segments were created.")
+        raise ValueError("No valid audio chunks were created.")
 
     # Concatenate all audio segments
     final_audio = sum(audio_segments)
@@ -48,7 +50,7 @@ def generate_audio_with_pauses(text, word_pause=1.82):
 
 # Streamlit UI
 st.title("Text to Audio with Word Gaps")
-st.write("Enter text and get an audio file where each word is spoken with a 1.82-second gap.")
+st.write("Enter text and get an audio file where words are grouped and spoken with a 1.82-second gap between chunks.")
 
 # User input
 user_input = st.text_area("Enter your text here:", "")
