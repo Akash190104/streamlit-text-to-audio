@@ -1,10 +1,9 @@
 import streamlit as st
-from gtts import gTTS
 from pydub import AudioSegment
 from pydub.utils import which
+import pyttsx3
 import os
 import tempfile
-import time
 
 # Set the path to FFmpeg and FFprobe
 AudioSegment.converter = which("ffmpeg")
@@ -12,7 +11,7 @@ AudioSegment.ffprobe = which("ffprobe")
 
 def generate_audio_with_pauses(text, word_pause=1.82):
     """
-    Generate an audio file from text with a 1.82-second pause between words, handling rate limits.
+    Generate an audio file from text with a 1.82-second pause between words using offline TTS.
     
     Args:
         text (str): The input text.
@@ -21,20 +20,21 @@ def generate_audio_with_pauses(text, word_pause=1.82):
     Returns:
         str: Path to the generated audio file.
     """
-    words = text.split()
+    engine = pyttsx3.init()
     temp_dir = tempfile.mkdtemp()
     audio_segments = []
 
-    for word in words:
+    for word in text.split():
         try:
-            # Generate audio for each word
-            tts = gTTS(word, lang='en')
-            temp_file = os.path.join(temp_dir, f"{word}.mp3")
-            tts.save(temp_file)
+            # Save the word audio locally
+            temp_file = os.path.join(temp_dir, f"{word}.wav")
+            engine.save_to_file(word, temp_file)
+            engine.runAndWait()
+
+            # Load the audio and add a pause
             word_audio = AudioSegment.from_file(temp_file)
             audio_segments.append(word_audio)
             audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # 1.82 seconds pause
-            time.sleep(1)  # Delay to avoid hitting API rate limits
         except Exception as e:
             st.error(f"Error generating audio for word '{word}': {e}")
 
