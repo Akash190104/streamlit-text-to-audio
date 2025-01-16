@@ -9,7 +9,7 @@ import tempfile
 AudioSegment.converter = which("ffmpeg")
 AudioSegment.ffprobe = which("ffprobe")
 
-def generate_audio_with_pauses(text, word_pause=1.75):
+def generate_audio_with_pauses(text, word_pause=0.875):
     """
     Generate an audio file from text with a 1.75-second pause between each word.
     
@@ -41,7 +41,7 @@ def generate_audio_with_pauses(text, word_pause=1.75):
 
 # Streamlit UI
 st.title("Text to Audio with Word Gaps")
-st.write("Enter text and get an audio file where each word is spoken with a 1.75-second gap.")
+st.write("Enter text and get an audio file where two words are spoken with a 1.75-second gap.")
 
 # User input
 user_input = st.text_area("Enter your text here:", "")
