@@ -26,6 +26,9 @@ def generate_audio_with_pauses(text, word_pause=1.82):
 
     for word in text.split():
         try:
+            if not word.isalnum():  # Check if word contains valid alphanumeric characters
+                raise ValueError(f"Invalid word: '{word}'")
+            
             # Save the word audio locally
             temp_file = os.path.join(temp_dir, f"{word}.wav")
             engine.save_to_file(word, temp_file)
@@ -36,14 +39,16 @@ def generate_audio_with_pauses(text, word_pause=1.82):
             audio_segments.append(word_audio)
             audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # 1.82 seconds pause
         except Exception as e:
-            st.error(f"Error generating audio for word '{word}': {e}")
+            st.warning(f"Skipping word '{word}' due to an error: {e}")
+
+    if not audio_segments:
+        raise ValueError("No valid words found to generate audio.")
 
     # Concatenate all audio segments
     final_audio = sum(audio_segments)
     output_file = os.path.join(temp_dir, "output_audio.mp3")
     final_audio.export(output_file, format="mp3")
     return output_file
-
 # Streamlit UI
 st.title("Text to Audio with Word Gaps")
 st.write("Enter text and get an audio file where each word is spoken with a 1.82-second gap.")
