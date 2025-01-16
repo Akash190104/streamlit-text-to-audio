@@ -4,23 +4,22 @@ from pydub.utils import which
 import pyttsx3
 import os
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 
 # Set the path to FFmpeg and FFprobe
 AudioSegment.converter = which("ffmpeg")
 AudioSegment.ffprobe = which("ffprobe")
 
-def save_audio_offline(text, output_dir):
+def save_audio_offline(word, output_file):
     """
-    Generate audio files for each word using pyttsx3 offline TTS.
+    Generate an audio file for a single word using pyttsx3 offline TTS.
     
     Args:
-        text (str): Input text.
-        output_dir (str): Directory to save generated audio files.
+        word (str): Input word.
+        output_file (str): Path to save the generated audio file.
     """
     engine = pyttsx3.init()
-    for word in text.split():
-        temp_file = os.path.join(output_dir, f"{word}.wav")
-        engine.save_to_file(word, temp_file)
+    engine.save_to_file(word, output_file)
     engine.runAndWait()
 
 def generate_audio_with_pauses(text, word_pause=1.82):
@@ -34,18 +33,26 @@ def generate_audio_with_pauses(text, word_pause=1.82):
     Returns:
         str: Path to the generated audio file.
     """
+    words = text.split()
     temp_dir = tempfile.mkdtemp()
-    save_audio_offline(text, temp_dir)  # Generate offline audio for each word
     audio_segments = []
 
-    for word in text.split():
-        try:
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for word in words:
             temp_file = os.path.join(temp_dir, f"{word}.wav")
-            word_audio = AudioSegment.from_file(temp_file)
-            audio_segments.append(word_audio)
-            audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # Pause
-        except Exception as e:
-            st.warning(f"Skipping word '{word}' due to an error: {e}")
+            futures.append(executor.submit(save_audio_offline, word, temp_file))
+        
+        # Wait for all audio files to be generated
+        for future, word in zip(futures, words):
+            try:
+                future.result()  # Wait for the thread to finish
+                temp_file = os.path.join(temp_dir, f"{word}.wav")
+                word_audio = AudioSegment.from_file(temp_file)
+                audio_segments.append(word_audio)
+                audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # Pause
+            except Exception as e:
+                st.warning(f"Skipping word '{word}' due to an error: {e}")
 
     if not audio_segments:
         raise ValueError("No valid audio segments were created.")
