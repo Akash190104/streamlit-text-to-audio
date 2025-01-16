@@ -5,17 +5,17 @@ from pydub.utils import which
 import os
 import tempfile
 
-# Ensure pydub knows where FFmpeg is
+# Set the path to FFmpeg and FFprobe
 AudioSegment.converter = which("ffmpeg")
 AudioSegment.ffprobe = which("ffprobe")
 
-def generate_audio_with_pauses(text, word_pause=2):
+def generate_audio_with_pauses(text, word_pause=1.5):
     """
-    Generate an audio file from text with a 2-second pause between each word.
+    Generate an audio file from text with a 1.5-second pause after every two words.
     
     Args:
         text (str): The input text.
-        word_pause (int): Pause duration in seconds between words.
+        word_pause (float): Pause duration in seconds after every two words.
     
     Returns:
         str: Path to the generated audio file.
@@ -24,14 +24,15 @@ def generate_audio_with_pauses(text, word_pause=2):
     temp_dir = tempfile.mkdtemp()
     audio_segments = []
 
-    # Generate audio for each word
-    for word in words:
-        tts = gTTS(word, lang='en')
-        temp_file = os.path.join(temp_dir, f"{word}.mp3")
+    # Generate audio for every two words
+    for i in range(0, len(words), 2):
+        phrase = " ".join(words[i:i+2])
+        tts = gTTS(phrase, lang='en')
+        temp_file = os.path.join(temp_dir, f"phrase_{i}.mp3")
         tts.save(temp_file)
-        word_audio = AudioSegment.from_file(temp_file)
-        audio_segments.append(word_audio)
-        audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # 2 seconds pause
+        phrase_audio = AudioSegment.from_file(temp_file)
+        audio_segments.append(phrase_audio)
+        audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # 1.5 seconds pause
 
     # Concatenate all audio segments
     final_audio = sum(audio_segments)
@@ -41,7 +42,7 @@ def generate_audio_with_pauses(text, word_pause=2):
 
 # Streamlit UI
 st.title("Text to Audio with Word Gaps")
-st.write("Enter text and get an audio file where each word is spoken every 2 seconds.")
+st.write("Enter text and get an audio file where every two words are spoken with a 1.5-second gap.")
 
 # User input
 user_input = st.text_area("Enter your text here:", "")
