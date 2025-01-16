@@ -1,9 +1,10 @@
 import streamlit as st
+from gtts import gTTS
 from pydub import AudioSegment
 from pydub.utils import which
-import pyttsx3
 import os
 import tempfile
+import time
 
 # Set the path to FFmpeg and FFprobe
 AudioSegment.converter = which("ffmpeg")
@@ -11,7 +12,7 @@ AudioSegment.ffprobe = which("ffprobe")
 
 def generate_audio_with_pauses(text, word_pause=1.82):
     """
-    Generate an audio file from text with a 1.82-second pause between words using offline TTS.
+    Generate an audio file from text with a 1.82-second pause between words.
     
     Args:
         text (str): The input text.
@@ -20,21 +21,16 @@ def generate_audio_with_pauses(text, word_pause=1.82):
     Returns:
         str: Path to the generated audio file.
     """
-    engine = pyttsx3.init()
+    words = text.split()
     temp_dir = tempfile.mkdtemp()
     audio_segments = []
 
-    for word in text.split():
+    for word in words:
         try:
-            if not word.isalnum():  # Check if word contains valid alphanumeric characters
-                raise ValueError(f"Invalid word: '{word}'")
-            
-            # Save the word audio locally
-            temp_file = os.path.join(temp_dir, f"{word}.wav")
-            engine.save_to_file(word, temp_file)
-            engine.runAndWait()
-
-            # Load the audio and add a pause
+            # Generate audio for each word
+            tts = gTTS(word, lang='en')
+            temp_file = os.path.join(temp_dir, f"{word}.mp3")
+            tts.save(temp_file)
             word_audio = AudioSegment.from_file(temp_file)
             audio_segments.append(word_audio)
             audio_segments.append(AudioSegment.silent(duration=word_pause * 1000))  # 1.82 seconds pause
@@ -42,13 +38,14 @@ def generate_audio_with_pauses(text, word_pause=1.82):
             st.warning(f"Skipping word '{word}' due to an error: {e}")
 
     if not audio_segments:
-        raise ValueError("No valid words found to generate audio.")
+        raise ValueError("No valid audio segments were created.")
 
     # Concatenate all audio segments
     final_audio = sum(audio_segments)
     output_file = os.path.join(temp_dir, "output_audio.mp3")
     final_audio.export(output_file, format="mp3")
     return output_file
+
 # Streamlit UI
 st.title("Text to Audio with Word Gaps")
 st.write("Enter text and get an audio file where each word is spoken with a 1.82-second gap.")
